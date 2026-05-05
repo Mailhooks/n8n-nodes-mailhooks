@@ -15,8 +15,5 @@
 			}
 		]
 	},
-	"alias": ["email", "mail", "inbox", "webhook", "trigger"],
-	"subcategories": {
-		"Communication": ["Email"]
-	}
+	"alias": ["email", "mail", "inbox", "webhook", "trigger"]
 }

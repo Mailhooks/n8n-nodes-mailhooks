@@ -15,8 +15,5 @@
 			}
 		]
 	},
-	"alias": ["email", "mail", "inbox", "poll", "trigger"],
-	"subcategories": {
-		"Communication": ["Email"]
-	}
+	"alias": ["email", "mail", "inbox", "poll", "trigger"]
 }

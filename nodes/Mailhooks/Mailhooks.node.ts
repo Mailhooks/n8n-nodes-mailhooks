@@ -8,7 +8,7 @@ import type {
 	ILoadOptionsFunctions,
 	INodePropertyOptions,
 } from 'n8n-workflow';
-import { NodeConnectionTypes } from 'n8n-workflow';
+import { NodeConnectionTypes, NodeApiError, JsonObject } from 'n8n-workflow';
 
 function toDataObject<T>(obj: T): IDataObject {
 	return obj as IDataObject;
@@ -459,7 +459,7 @@ export class Mailhooks implements INodeType {
 					returnData.push({ json: { error: (error as Error).message }, pairedItem: { item: i } });
 					continue;
 				}
-				throw error;
+				throw new NodeApiError(this.getNode(), error as JsonObject);
 			}
 		}
 
