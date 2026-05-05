@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import type {
 	IWebhookFunctions,
 	IDataObject,
@@ -81,9 +83,9 @@ describe('MailhooksTrigger', () => {
 		expect(webhook.path).toBe('mailhooks-webhook');
 	});
 
-	it('should have hookFunctions for auto-creating webhooks', () => {
+	it('should have webhookMethods for auto-creating webhooks', () => {
 		const node = new MailhooksTrigger();
-		const hooks = node.hookFunctions;
+		const hooks = node.webhookMethods;
 		expect(hooks).toBeDefined();
 		expect(hooks.default).toBeDefined();
 		expect(typeof hooks.default.checkExists).toBe('function');
@@ -178,5 +180,24 @@ describe('MailhooksTrigger', () => {
 				workflowData: [[{ json: mockBody }]],
 			});
 		});
+	});
+});
+
+describe('MailhooksTrigger codex definition', () => {
+	const codexPath = resolve(__dirname, '..', 'MailhooksTrigger.node.json');
+
+	it('should not contain unsupported subcategories field', () => {
+		const raw = readFileSync(codexPath, 'utf8');
+		const codex = JSON.parse(raw);
+		expect(codex).not.toHaveProperty('subcategories');
+	});
+
+	it('should only contain supported fields', () => {
+		const raw = readFileSync(codexPath, 'utf8');
+		const codex = JSON.parse(raw);
+		const supported = ['node', 'nodeVersion', 'codexVersion', 'categories', 'resources', 'alias'];
+		for (const key of Object.keys(codex)) {
+			expect(supported).toContain(key);
+		}
 	});
 });

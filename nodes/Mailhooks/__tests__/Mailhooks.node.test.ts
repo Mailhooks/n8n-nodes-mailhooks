@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { Mailhooks } from '../Mailhooks.node';
 
 describe('Mailhooks action node', () => {
@@ -187,6 +189,103 @@ describe('Mailhooks action node', () => {
 		it('should have an execute method', () => {
 			const node = new Mailhooks();
 			expect(typeof node.execute).toBe('function');
+		});
+	});
+
+	describe('Error handling', () => {
+		it('should throw NodeApiError when API call fails and continueOnFail is false', async () => {
+			const node = new Mailhooks();
+			const apiError = new Error('Network error');
+			(apiError as any).statusCode = 500;
+			(apiError as any).response = { body: { message: 'Internal server error' } };
+
+			// Mock `this` context with minimal n8n IExecuteFunctions surface
+			const mockThis = {
+				getInputData: () => [{ json: {} }],
+				getNodeParameter: (name: string) => {
+					if (name === 'resource') return 'email';
+					if (name === 'operation') return 'list';
+					if (name === 'filters') return {};
+					if (name === 'options') return {};
+					return '';
+				},
+				getCredentials: async () => ({ baseUrl: 'https://test.example/api' }),
+				continueOnFail: () => false,
+				getNode: () => ({ name: 'mailhooks' }),
+				helpers: {
+					httpRequestWithAuthentication: {
+						call: async () => { throw apiError; },
+					},
+				},
+			};
+
+			// NodeApiError wraps the original error — the mock exports a NodeApiError class
+			await expect(node.execute.call(mockThis as any)).rejects.toThrow();
+			try {
+				await node.execute.call(mockThis as any);
+			} catch (err: any) {
+				expect(err.name).toBe('NodeApiError');
+			}
+		});
+
+		it('should push error to returnData when continueOnFail is true', async () => {
+			const node = new Mailhooks();
+			const apiError = new Error('Transient failure');
+
+			const mockThis = {
+				getInputData: () => [{ json: {} }],
+				getNodeParameter: (name: string) => {
+					if (name === 'resource') return 'email';
+					if (name === 'operation') return 'list';
+					if (name === 'filters') return {};
+					if (name === 'options') return {};
+					return '';
+				},
+				getCredentials: async () => ({ baseUrl: 'https://test.example/api' }),
+				continueOnFail: () => true,
+				getNode: () => ({ name: 'mailhooks' }),
+				helpers: {
+					httpRequestWithAuthentication: {
+						call: async () => { throw apiError; },
+					},
+				},
+			};
+
+			const result = await node.execute.call(mockThis as any);
+			expect(result).toBeDefined();
+			expect(result[0]).toBeDefined();
+			expect(result[0].length).toBe(1);
+			expect(result[0][0].json).toEqual({ error: 'Transient failure' });
+		});
+	});
+
+	describe('Codex definition', () => {
+		const codexPath = resolve(__dirname, '..', 'Mailhooks.node.json');
+
+		it('should not contain unsupported subcategories field', () => {
+			const raw = readFileSync(codexPath, 'utf8');
+			const codex = JSON.parse(raw);
+			expect(codex).not.toHaveProperty('subcategories');
+		});
+
+		it('should only contain supported fields', () => {
+			const raw = readFileSync(codexPath, 'utf8');
+			const codex = JSON.parse(raw);
+			const supported = ['node', 'nodeVersion', 'codexVersion', 'categories', 'resources', 'alias'];
+			for (const key of Object.keys(codex)) {
+				expect(supported).toContain(key);
+			}
+		});
+
+		it('should have required fields', () => {
+			const raw = readFileSync(codexPath, 'utf8');
+			const codex = JSON.parse(raw);
+			expect(codex.node).toBeDefined();
+			expect(codex.nodeVersion).toBeDefined();
+			expect(codex.codexVersion).toBeDefined();
+			expect(codex.categories).toBeDefined();
+			expect(codex.resources).toBeDefined();
+			expect(codex.alias).toBeDefined();
 		});
 	});
 });

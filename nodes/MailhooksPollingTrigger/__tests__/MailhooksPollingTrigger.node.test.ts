@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
 import { MailhooksPollingTrigger } from '../MailhooksPollingTrigger.node';
 
 describe('MailhooksPollingTrigger', () => {
@@ -50,5 +52,24 @@ describe('MailhooksPollingTrigger', () => {
 	it('should have a poll method', () => {
 		const node = new MailhooksPollingTrigger();
 		expect(typeof node.poll).toBe('function');
+	});
+});
+
+describe('MailhooksPollingTrigger codex definition', () => {
+	const codexPath = resolve(__dirname, '..', 'MailhooksPollingTrigger.node.json');
+
+	it('should not contain unsupported subcategories field', () => {
+		const raw = readFileSync(codexPath, 'utf8');
+		const codex = JSON.parse(raw);
+		expect(codex).not.toHaveProperty('subcategories');
+	});
+
+	it('should only contain supported fields', () => {
+		const raw = readFileSync(codexPath, 'utf8');
+		const codex = JSON.parse(raw);
+		const supported = ['node', 'nodeVersion', 'codexVersion', 'categories', 'resources', 'alias'];
+		for (const key of Object.keys(codex)) {
+			expect(supported).toContain(key);
+		}
 	});
 });
